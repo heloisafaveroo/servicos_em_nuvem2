@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulta CNPJ</title>
+</head>
+<body>
+  <h1>Consulta CNPJ</h1>
+  <div class="container">
+    <div class="form-group">
+      <label for="cnpj">Digite o CNPJ:</label>
+      <input type="text" id="cnpj" placeholder="Ex: 12345678000195">
+    </div>
+    <button onclick="consultarCNPJ()">Consultar</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    async function consultarCNPJ() {
+        const cnpj = document.getElementById('cnpj').value.replace(/\D/g, '');
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '';
+
+      if (!cnpj || cnpj.length !== 14) {
+        resultDiv.innerHTML = '<p class="error">Por favor, insira um CNPJ válido com 14 dígitos.</p>';
+        return;
+      }
+
+      const url = `https://receitaws.com.br/v1/cnpj/${cnpj}`;
+
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' }
+        });
+
+        if (response.status === 200) {
+          const dados = await response.json();
+          const nome = dados.nome || 'N/A';
+          const situacao = dados.situacao || 'N/A';
+          const atividadePrincipal = dados.atividade_principal && dados.atividade_principal[0] ? dados.atividade_principal[0].text : 'N/A';
+
+          resultDiv.innerHTML = `
+            <p><strong>Nome:</strong> ${nome}</p>
+            <p><strong>Situação:</strong> ${situacao}</p>
+            <p><strong>Atividade Principal:</strong> ${atividadePrincipal}</p>
+          `;
+        } else if (response.status === 429) {
+          resultDiv.innerHTML = '<p class="error">Limite de requisições excedido. Tente novamente em 1 minuto.</p>';
+        } else if (response.status === 504) {
+          resultDiv.innerHTML = '<p class="error">Erro de timeout. Tente novamente mais tarde.</p>';
+        } else {
+          resultDiv.innerHTML = '<p class="error">Erro ao consultar o CNPJ. Tente novamente.</p>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = '<p class="error">Erro na requisição. Tente novamente.</p>';
+      }
+    }
+  </script>
+
+</body>
+</html>
