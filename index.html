@@ -4,61 +4,113 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Consulta CNPJ</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f6d4ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: rgb(250, 194, 255);
+      padding: 20px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    input {
+      width: calc(100% - 20px);
+      padding: 10px;
+      margin-top: 10px;
+      border: 1px solid #a200ff;
+      border-radius: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background: #6f00af;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #05080c;
+    }
+    .result p {
+      background: #f8dfff;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    #loading{
+      margin: 10px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Consulta CNPJ</h1>
   <div class="container">
-    <div class="form-group">
-      <label for="cnpj">Digite o CNPJ:</label>
-      <input type="text" id="cnpj" placeholder="Ex: 12345678000195">
-    </div>
+    <h1>Consulta CNPJ</h1>
+    <label for="cnpj">Digite o CNPJ:</label>
+    <input type="text" id="cnpj" placeholder="Ex: 12445678001952">
     <button onclick="consultarCNPJ()">Consultar</button>
-
-    <div class="result" id="result"></div>
+    <div id="loading" class="error" style="display: none;"> Aguarde...</div>
+    <div id="result" class="result"></div>
   </div>
-
+  ?.
   <script>
     async function consultarCNPJ() {
-        const cnpj = document.getElementById('cnpj').value.replace(/\D/g, '');
+      const cnpjInput = document.getElementById('cnpj');
+      const cnpj = cnpjInput.value.replace(/\D/g, '');
       const resultDiv = document.getElementById('result');
+      const loadingDiv = document.getElementById('loading');
       resultDiv.innerHTML = '';
-
+      
       if (!cnpj || cnpj.length !== 14) {
-        resultDiv.innerHTML = '<p class="error">Por favor, insira um CNPJ válido com 14 dígitos.</p>';
+        resultDiv.innerHTML = '<p class="error"> insira um CNPJ válido com 14 dígitos, por favor.</p>';
         return;
       }
-
-      const url = `https://receitaws.com.br/v1/cnpj/${cnpj}`;
-
+      
+      loadingDiv.style.display = 'block';
+      
       try {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        });
-
+        const url = `https://cors-anywhere.herokuapp.com/https://receitaws.com.br/v1/cnpj/${cnpj}`;
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        
+        loadingDiv.style.display = 'none';
+        
         if (response.status === 200) {
           const dados = await response.json();
-          const nome = dados.nome || 'N/A';
-          const situacao = dados.situacao || 'N/A';
-          const atividadePrincipal = dados.atividade_principal && dados.atividade_principal[0] ? dados.atividade_principal[0].text : 'N/A';
-
           resultDiv.innerHTML = `
-            <p><strong>Nome:</strong> ${nome}</p>
-            <p><strong>Situação:</strong> ${situacao}</p>
-            <p><strong>Atividade Principal:</strong> ${atividadePrincipal}</p>
+            <p><strong>Nome:</strong> ${dados.nome || 'N/A'}</p>
+            <p><strong>Situação:</strong> ${dados.situacao || 'N/A'}</p>
+            <p><strong>Atividade Principal:</strong> ${dados.atividade_principal?.[0]?.text || 'N/A'}</p>
           `;
-        } else if (response.status === 429) {
-          resultDiv.innerHTML = '<p class="error">Limite de requisições excedido. Tente novamente em 1 minuto.</p>';
-        } else if (response.status === 504) {
-          resultDiv.innerHTML = '<p class="error">Erro de timeout. Tente novamente mais tarde.</p>';
         } else {
-          resultDiv.innerHTML = '<p class="error">Erro ao consultar o CNPJ. Tente novamente.</p>';
+          let errorMessage = '';
+          switch (response.status) {
+            case 429:
+              errorMessage = ' Limite de requisições excedido. Tente novamente mais tarde.';
+              break;
+            case 504:
+              errorMessage = ' Erro de timeout. Tente novamente mais tarde.';
+              break;
+            default:
+              errorMessage = ' Erro ao consultar o CNPJ. Verifique os dados e tente novamente.';
+          }
+          resultDiv.innerHTML = `<p class="error">${errorMessage}</p>`;
         }
       } catch (error) {
-        resultDiv.innerHTML = '<p class="error">Erro na requisição. Tente novamente.</p>';
+        loadingDiv.style.display = 'none';
+        resultDiv.innerHTML = '<p class="error"> Erro na requisição. Tente novamente.</p>';
       }
     }
   </script>
-
 </body>
 </html>
